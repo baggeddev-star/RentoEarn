@@ -1,0 +1,653 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════
+   VOID TERMINAL — Design System
+   Two colors. No gradients. Pure craft.
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    --void: #09090B;
+    --signal: #FAFAFA;
+    --transition-fast: 150ms;
+    --transition-base: 250ms;
+    --transition-slow: 400ms;
+  }
+
+  * {
+    @apply border-void-400;
+  }
+
+  html {
+    @apply antialiased;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-void text-signal font-sans;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  ::selection {
+    @apply bg-signal text-void;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-void-200;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-void-500;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-signal-400;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-signal ring-offset-2 ring-offset-void;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .text-display {
+    @apply font-display font-bold tracking-tight;
+  }
+
+  .text-mono {
+    @apply font-mono;
+    font-feature-settings: 'tnum', 'zero';
+  }
+
+  .text-label {
+    @apply text-[11px] uppercase tracking-[0.1em] font-medium text-signal/50;
+  }
+
+  .text-overline {
+    @apply text-[11px] uppercase tracking-[0.15em] text-signal/40 mb-3 block font-mono;
+  }
+
+  .cursor-blink::after {
+    content: '█';
+    @apply animate-blink ml-1 text-signal;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .btn {
+    @apply relative inline-flex items-center justify-center gap-2;
+    @apply font-mono text-[13px] font-medium tracking-wide;
+    @apply px-6 py-3;
+    @apply border-2 border-signal;
+    @apply transition-all duration-150;
+    @apply active:scale-[0.98];
+  }
+
+  .btn-primary {
+    @apply btn bg-signal text-void;
+  }
+  .btn-primary:hover {
+    @apply bg-transparent text-signal;
+    @apply shadow-sharp-white;
+    @apply -translate-x-1 -translate-y-1;
+  }
+
+  .btn-secondary {
+    @apply btn bg-transparent text-signal;
+  }
+  .btn-secondary:hover {
+    @apply bg-signal text-void;
+  }
+
+  .btn-ghost {
+    @apply btn border-transparent text-signal/70;
+  }
+  .btn-ghost:hover {
+    @apply border-signal/30 text-signal;
+  }
+
+  .btn-danger {
+    @apply btn border-signal/50 text-signal/80 bg-transparent;
+  }
+  .btn-danger:hover {
+    @apply border-signal bg-signal text-void;
+  }
+
+  .btn-sm {
+    @apply px-4 py-2 text-[12px];
+  }
+
+  .btn-lg {
+    @apply px-8 py-4 text-[15px];
+  }
+
+  .btn-icon {
+    @apply w-10 h-10 p-0 flex items-center justify-center;
+    @apply border border-void-400 bg-void-200;
+    @apply hover:border-signal hover:bg-void-300;
+    @apply transition-all duration-150;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARDS
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .card {
+    @apply relative bg-void-200 border border-void-400;
+    @apply transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply card cursor-pointer;
+  }
+  .card-hover:hover {
+    @apply border-signal/50 bg-void-300;
+    @apply -translate-y-1;
+    @apply shadow-sharp;
+  }
+
+  .card-glow:hover {
+    @apply shadow-glow border-signal/40;
+  }
+
+  .card-selected {
+    @apply border-signal shadow-glow;
+  }
+
+  /* Terminal card with corner brackets */
+  .card-terminal {
+    @apply card relative;
+  }
+  .card-terminal::before {
+    content: '';
+    @apply absolute top-0 left-0 w-4 h-4;
+    @apply border-t-2 border-l-2 border-signal;
+  }
+  .card-terminal::after {
+    content: '';
+    @apply absolute bottom-0 right-0 w-4 h-4;
+    @apply border-b-2 border-r-2 border-signal;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INPUTS
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .input {
+    @apply w-full bg-void border border-void-400;
+    @apply px-4 py-3;
+    @apply font-mono text-[13px] text-signal;
+    @apply placeholder:text-signal/30;
+    @apply focus:border-signal focus:ring-0 focus:outline-none;
+    @apply transition-colors duration-150;
+  }
+
+  .input-lg {
+    @apply input py-4 text-[15px];
+  }
+
+  .input-label {
+    @apply text-label block mb-2;
+  }
+
+  .input-error {
+    @apply border-signal/80;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHIPS & BADGES
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .chip {
+    @apply inline-flex items-center gap-1.5;
+    @apply px-3 py-1.5;
+    @apply font-mono text-[12px];
+    @apply border border-void-400 bg-void-200;
+    @apply transition-all duration-150;
+  }
+
+  .chip-active {
+    @apply border-signal bg-signal text-void;
+  }
+
+  .chip:hover:not(.chip-active) {
+    @apply border-signal/50;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5;
+    @apply px-2.5 py-1;
+    @apply font-mono text-[11px] uppercase tracking-wider;
+    @apply border;
+  }
+
+  .badge-live {
+    @apply badge border-signal bg-signal/10 text-signal;
+  }
+  .badge-live::before {
+    content: '';
+    @apply w-1.5 h-1.5 rounded-full bg-signal animate-pulse;
+  }
+
+  .badge-pending {
+    @apply badge border-signal/40 text-signal/60;
+  }
+
+  .badge-success {
+    @apply badge border-signal bg-signal/10;
+  }
+
+  .badge-error {
+    @apply badge border-signal/60 text-signal/80;
+  }
+
+  .badge-default {
+    @apply badge border-void-400 text-signal/50;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KPI TILES
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .kpi-tile {
+    @apply card p-6 flex flex-col;
+  }
+
+  .kpi-label {
+    @apply text-label mb-3;
+  }
+
+  .kpi-value {
+    @apply font-mono text-4xl font-bold tracking-tight tabular-nums;
+  }
+
+  .kpi-delta {
+    @apply font-mono text-[12px] mt-3 flex items-center gap-1;
+  }
+
+  .kpi-delta-up {
+    @apply kpi-delta text-signal;
+  }
+  .kpi-delta-up::before {
+    content: '↑';
+  }
+
+  .kpi-delta-down {
+    @apply kpi-delta text-signal/50;
+  }
+  .kpi-delta-down::before {
+    content: '↓';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROGRESS BARS
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .progress-bar {
+    @apply h-1.5 bg-void-400 overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply h-full bg-signal transition-all duration-500 ease-out;
+  }
+
+  .progress-striped .progress-fill {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 4px,
+      rgba(9, 9, 11, 0.4) 4px,
+      rgba(9, 9, 11, 0.4) 8px
+    );
+    @apply animate-stripe;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TIMELINE / ACTIVITY FEED
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .timeline {
+    @apply relative pl-6;
+  }
+
+  .timeline::before {
+    content: '';
+    @apply absolute left-[7px] top-3 bottom-3 w-px bg-void-400;
+  }
+
+  .timeline-item {
+    @apply relative pb-6 last:pb-0;
+  }
+
+  .timeline-dot {
+    @apply absolute -left-6 top-1;
+    @apply w-3.5 h-3.5 rounded-full;
+    @apply border-2 border-signal bg-void;
+  }
+
+  .timeline-dot-filled {
+    @apply timeline-dot bg-signal;
+  }
+
+  .timeline-dot-pulse {
+    @apply timeline-dot bg-signal animate-pulse;
+  }
+
+  .timeline-content {
+    @apply font-mono text-[13px];
+  }
+
+  .timeline-time {
+    @apply text-[11px] text-signal/40 mt-1 font-mono;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SKELETON LOADERS
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .skeleton {
+    @apply relative overflow-hidden bg-void-300;
+  }
+
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(250, 250, 250, 0.05) 50%,
+      transparent 100%
+    );
+    @apply animate-shimmer;
+  }
+
+  .skeleton-text {
+    @apply skeleton h-4 w-3/4;
+  }
+
+  .skeleton-heading {
+    @apply skeleton h-8 w-1/2;
+  }
+
+  .skeleton-avatar {
+    @apply skeleton w-12 h-12 rounded-full;
+  }
+
+  .skeleton-card {
+    @apply skeleton h-48 w-full;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODALS
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 bg-void/95 backdrop-blur-sm;
+    animation: fade-in 0.2s ease-out;
+  }
+
+  .modal-content {
+    @apply fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+    @apply w-full max-w-lg;
+    @apply bg-void-200 border-2 border-signal;
+    @apply shadow-sharp-white;
+    @apply animate-scale-in;
+  }
+
+  .modal-header {
+    @apply px-6 py-4 border-b border-void-400;
+    @apply font-mono text-[15px] font-medium;
+  }
+
+  .modal-body {
+    @apply px-6 py-6;
+  }
+
+  .modal-footer {
+    @apply px-6 py-4 border-t border-void-400;
+    @apply flex items-center justify-end gap-3;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TABLES
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .table-void {
+    @apply w-full font-mono text-[13px];
+  }
+
+  .table-void thead {
+    @apply border-b-2 border-signal;
+  }
+
+  .table-void th {
+    @apply text-left text-label py-3 px-4;
+  }
+
+  .table-void td {
+    @apply py-4 px-4 border-b border-void-400;
+  }
+
+  .table-void tbody tr {
+    @apply transition-colors duration-100;
+  }
+
+  .table-void tbody tr:hover {
+    @apply bg-void-300;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BACKGROUNDS & TEXTURES
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  .bg-dots {
+    background-image: radial-gradient(circle, rgba(250,250,250,0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(250,250,250,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(250,250,250,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .bg-scanlines {
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.1) 2px,
+      rgba(0, 0, 0, 0.1) 4px
+    );
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  .animate-in {
+    animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+  }
+
+  .animate-in-delay-1 { animation-delay: 50ms; }
+  .animate-in-delay-2 { animation-delay: 100ms; }
+  .animate-in-delay-3 { animation-delay: 150ms; }
+  .animate-in-delay-4 { animation-delay: 200ms; }
+  .animate-in-delay-5 { animation-delay: 250ms; }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPTY STATES
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .empty-state {
+    @apply py-16 px-8 text-center;
+  }
+
+  .empty-state-icon {
+    @apply text-6xl mb-6 opacity-20;
+  }
+
+  .empty-state-title {
+    @apply font-mono text-xl mb-2;
+  }
+
+  .empty-state-text {
+    @apply text-signal/50 text-[14px] mb-6 max-w-sm mx-auto font-mono;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOLTIPS
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .tooltip {
+    @apply absolute z-50 px-3 py-2;
+    @apply bg-signal text-void;
+    @apply font-mono text-[12px];
+    @apply opacity-0 pointer-events-none;
+    @apply transition-opacity duration-150;
+  }
+
+  .tooltip-trigger:hover .tooltip {
+    @apply opacity-100;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTIFICATION DOT
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .notification-dot {
+    @apply absolute -top-1 -right-1 w-2.5 h-2.5;
+    @apply bg-signal rounded-full;
+    @apply animate-pulse;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLL PROGRESS
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .scroll-progress {
+    @apply fixed top-0 left-0 right-0 h-0.5 bg-void-400 z-[100];
+  }
+
+  .scroll-progress-bar {
+    @apply h-full bg-signal;
+    width: var(--scroll-progress, 0%);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WALLET ADAPTER OVERRIDES
+   ═══════════════════════════════════════════════════════════════ */
+
+.wallet-adapter-button {
+  @apply !bg-white !text-[#0d1117] !font-medium !text-sm !rounded-full !h-9 !px-5;
+  @apply !border-0 !transition-all;
+}
+
+.wallet-adapter-button:hover {
+  @apply !bg-white/90;
+}
+
+.wallet-adapter-modal-wrapper {
+  @apply !bg-[#161b22] !border !border-white/10 !rounded-2xl;
+}
+
+.wallet-adapter-modal-title {
+  @apply !font-sans !text-white;
+}
+
+.wallet-adapter-modal-list li {
+  @apply !bg-white/5 hover:!bg-white/10 !rounded-xl;
+}
+
+.wallet-adapter-modal-button-close {
+  @apply !bg-white/10 hover:!bg-white/20;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLASSMORPHISM UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  .glass {
+    @apply backdrop-blur-xl bg-white/5 border border-white/10;
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-2xl bg-white/10 border border-white/20;
+  }
+}

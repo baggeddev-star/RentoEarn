@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+dist
+.turbo
+target
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage
+
+# Prisma
+prisma/migrations/*.sql.bak
+
+# Anchor
+programs/**/target
+.anchor
+test-ledger
+
+# Uploads (local dev)
+apps/web/public/uploads/*
+!apps/web/public/uploads/.gitkeep

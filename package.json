@@ -1,0 +1,27 @@
+{
+  "name": "billboard-market",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:generate": "pnpm --filter web exec prisma generate",
+    "db:migrate": "pnpm --filter web exec prisma migrate dev",
+    "db:push": "pnpm --filter web exec prisma db push",
+    "db:seed": "pnpm --filter web exec prisma db seed",
+    "db:studio": "pnpm --filter web exec prisma studio",
+    "worker": "pnpm --filter worker dev",
+    "anchor:build": "cd programs/billboard_market && anchor build",
+    "anchor:test": "cd programs/billboard_market && anchor test"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
