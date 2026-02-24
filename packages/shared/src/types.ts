@@ -37,6 +37,8 @@ export interface XSnapshot {
   bioText: string;
   displayName: string;
   avatarUrl: string | null;
+  followersCount: number | null;
+  verified: boolean;
 }
 
 // Verification result

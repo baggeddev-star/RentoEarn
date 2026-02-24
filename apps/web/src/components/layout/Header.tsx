@@ -82,6 +82,7 @@ export function Header() {
           <div className="hidden lg:flex items-center gap-1">
             <NavLink href="/listings">Listings</NavLink>
             <NavLink href="/requests">Requests</NavLink>
+            <NavLink href="/coming-soon">Features</NavLink>
             {user && (
               <>
                 <NavLink href="/dashboard/sponsor">Bookings</NavLink>
@@ -176,6 +177,9 @@ export function Header() {
               </MobileNavLink>
               <MobileNavLink href="/requests" onClick={() => setMobileMenuOpen(false)}>
                 Requests
+              </MobileNavLink>
+              <MobileNavLink href="/coming-soon" onClick={() => setMobileMenuOpen(false)}>
+                Features
               </MobileNavLink>
               {user && (
                 <>

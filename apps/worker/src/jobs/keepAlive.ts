@@ -1,13 +1,12 @@
 import { Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
 import { PublicKey } from '@solana/web3.js';
 import { DEFAULT_HASH_MAX_DISTANCE } from '@shared/types';
 import type { KeepAliveJobPayload } from '@shared/types';
 import { verifyHeader } from '../lib/verification';
 import { notifyHardCancel } from '../lib/notifications';
 import { keepAliveQueue, expiryQueue } from '../queues';
-
-const prisma = new PrismaClient();
+import { getWorkerAnchorClient } from '../lib/anchor';
+import { prisma } from '../lib/prisma';
 
 // RapidAPI configuration for twitter241
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
@@ -253,11 +252,25 @@ export async function processKeepAliveJob(job: Job<KeepAliveJobPayload>) {
     await removeScheduledJobs(campaignId);
 
     // 3. Trigger on-chain refund
-    // In production, this would call the Anchor program
-    // For now, we log and the refund would be triggered by a separate process
-    console.log(`[KeepAlive] Would call platform_hard_cancel_and_refund for campaign ${campaign.chainCampaignId}`);
-    console.log(`[KeepAlive] Sponsor wallet: ${campaign.sponsorWallet}`);
-    console.log(`[KeepAlive] Amount to refund: ${campaign.amountLamports} lamports`);
+    try {
+      const anchorClient = getWorkerAnchorClient();
+      const chainCampaignId = BigInt(campaign.chainCampaignId || '0');
+      const sponsorPubkey = new PublicKey(campaign.sponsorWallet);
+      
+      console.log(`[KeepAlive] Calling platform_hard_cancel_and_refund on-chain...`);
+      const refundTxSig = await anchorClient.hardCancelAndRefund(chainCampaignId, sponsorPubkey);
+      console.log(`[KeepAlive] On-chain refund successful: ${refundTxSig}`);
+      
+      // Update DB with refund tx signature
+      await prisma.campaign.update({
+        where: { id: campaignId },
+        data: { refundTxSig },
+      });
+    } catch (onChainError) {
+      console.error(`[KeepAlive] On-chain refund failed:`, onChainError);
+      // Continue with notifications even if on-chain fails
+      // The refund can be retried manually
+    }
 
     // 4. Notify both parties
     await notifyHardCancel(

@@ -56,12 +56,14 @@ export async function POST(request: NextRequest) {
     // 4. Fetch additional profile data from RapidAPI (for header image, full bio)
     let avatarUrl = twitterImage?.replace('_normal', '_400x400') || null;
     let displayName = twitterName || normalizedUsername;
+    let followersCount: number | null = null;
     
     try {
       const xProvider = getXProvider();
       const snapshot = await xProvider.fetchSnapshot(normalizedUsername);
       avatarUrl = snapshot.avatarUrl || avatarUrl;
       displayName = snapshot.displayName || displayName;
+      followersCount = snapshot.followersCount ?? null;
     } catch (error) {
       console.warn('[LinkTwitter] Failed to fetch additional profile data:', error);
       // Continue with data from Twitter OAuth
@@ -75,6 +77,7 @@ export async function POST(request: NextRequest) {
         xUserId: twitterId,
         displayName,
         avatarUrl,
+        followersCount,
         verified: true, // Twitter OAuth = verified
         verifyCode: null, // Clear any old verification code
       },
@@ -84,6 +87,7 @@ export async function POST(request: NextRequest) {
         xUserId: twitterId,
         displayName,
         avatarUrl,
+        followersCount,
         verified: true,
       },
     });
@@ -110,6 +114,7 @@ export async function POST(request: NextRequest) {
         xUserId: profile.xUserId,
         displayName: profile.displayName,
         avatarUrl: profile.avatarUrl,
+        followersCount: profile.followersCount,
       },
     });
   } catch (error) {

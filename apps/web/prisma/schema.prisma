@@ -62,16 +62,17 @@ model User {
 }
 
 model CreatorProfile {
-  id          String   @id @default(cuid())
-  wallet      String   @unique
-  xUsername   String   @unique
-  xUserId     String?  @unique  // Twitter user ID from OAuth
-  displayName String?
-  avatarUrl   String?
-  verified    Boolean  @default(false)
-  verifyCode  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  wallet         String   @unique
+  xUsername      String   @unique
+  xUserId        String?  @unique  // Twitter user ID from OAuth
+  displayName    String?
+  avatarUrl      String?
+  verified       Boolean  @default(false)
+  verifyCode     String?
+  followersCount Int?     // X followers count
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
   user     User      @relation(fields: [wallet], references: [wallet], onDelete: Cascade)
@@ -115,6 +116,7 @@ model Request {
   amountLamports  BigInt
   status          RequestStatus @default(OPEN)
   maxWinners      Int?
+  headerImageUrl  String?       // Header image URL for SPONSOR_BUY requests
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

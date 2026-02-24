@@ -1,9 +1,7 @@
 import { Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
 import type { ExpiryJobPayload } from '@shared/types';
 import { notifyCampaignExpired } from '../lib/notifications';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Expiry job - runs when campaign duration ends

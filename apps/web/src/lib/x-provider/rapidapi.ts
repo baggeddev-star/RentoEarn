@@ -28,7 +28,9 @@ interface Twitter241Response {
             screen_name?: string;
             followers_count?: number;
             friends_count?: number;
+            verified?: boolean;
           };
+          is_blue_verified?: boolean;
         };
       };
     };
@@ -101,6 +103,8 @@ export class RapidAPIXProvider implements XProvider {
         avatarUrl: avatar?.image_url?.replace('_normal', '_400x400') || 
                    legacy?.profile_image_url_https?.replace('_normal', '_400x400') || 
                    null,
+        followersCount: legacy?.followers_count ?? null,
+        verified: userResult.is_blue_verified || legacy?.verified || false,
       };
     } catch (error) {
       console.error(`[RapidAPI] Error fetching snapshot for @${normalizedUsername}:`, error);

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
@@ -20,25 +21,47 @@ export default function CreateRequestPage() {
   const { user, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [headerImagePreview, setHeaderImagePreview] = useState<string | null>(null);
+  const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     type: 'SPONSOR_BUY' as 'SPONSOR_BUY' | 'CREATOR_OFFER',
     title: '',
     description: '',
-    slotTypes: ['HEADER'] as ('HEADER' | 'BIO')[],
+    includeHeader: true,
+    includeBio: false,
     durationSeconds: 604800, // 7 days default
     amount: '',
     maxWinners: '1',
   });
 
-  const toggleSlotType = (type: 'HEADER' | 'BIO') => {
-    const current = formData.slotTypes;
-    if (current.includes(type)) {
-      if (current.length > 1) {
-        setFormData({ ...formData, slotTypes: current.filter(t => t !== type) });
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
       }
-    } else {
-      setFormData({ ...formData, slotTypes: [...current, type] });
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image must be less than 5MB');
+        return;
+      }
+      setHeaderImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setHeaderImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setError(null);
+    }
+  };
+
+  const removeImage = () => {
+    setHeaderImageFile(null);
+    setHeaderImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -48,7 +71,6 @@ export default function CreateRequestPage() {
     setIsSubmitting(true);
 
     try {
-      // Validate
       if (!formData.title.trim()) {
         throw new Error('Please enter a title');
       }
@@ -67,6 +89,40 @@ export default function CreateRequestPage() {
         throw new Error('Max winners must be at least 1');
       }
 
+      // For SPONSOR_BUY, header image is mandatory
+      if (formData.type === 'SPONSOR_BUY' && !headerImageFile) {
+        throw new Error('Header image is required for sponsor requests');
+      }
+
+      // Build slot types array
+      const slotTypes: ('HEADER' | 'BIO')[] = [];
+      if (formData.includeHeader) slotTypes.push('HEADER');
+      if (formData.includeBio) slotTypes.push('BIO');
+
+      if (slotTypes.length === 0) {
+        throw new Error('Please select at least Header');
+      }
+
+      // Upload header image first if present
+      let headerImageUrl: string | null = null;
+      if (headerImageFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', headerImageFile);
+        uploadFormData.append('type', 'request-header');
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: uploadFormData,
+        });
+
+        const uploadData = await uploadRes.json();
+        if (!uploadData.success) {
+          throw new Error(uploadData.error || 'Failed to upload image');
+        }
+        headerImageUrl = uploadData.data.url;
+      }
+
       // Convert SOL to lamports
       const amountLamports = Math.floor(amount * LAMPORTS_PER_SOL).toString();
 
@@ -78,10 +134,11 @@ export default function CreateRequestPage() {
           type: formData.type,
           title: formData.title.trim(),
           description: formData.description.trim(),
-          slotTypes: formData.slotTypes,
+          slotTypes,
           durationSeconds: formData.durationSeconds,
           amountLamports,
           maxWinners: maxWinners > 1 ? maxWinners : undefined,
+          headerImageUrl,
         }),
       });
 
@@ -91,7 +148,6 @@ export default function CreateRequestPage() {
         throw new Error(data.error || 'Failed to create request');
       }
 
-      // Redirect to the new request
       router.push(`/requests/${data.data.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -108,8 +164,6 @@ export default function CreateRequestPage() {
     return <SignInRequired />;
   }
 
-  // For SPONSOR_BUY, check if user has verified Twitter (blue tick)
-  // For CREATOR_OFFER, check if user is a verified creator
   const canCreateSponsorRequest = user.creatorProfile?.verified === true;
   const canCreateCreatorOffer = user.creatorProfile?.verified === true;
 
@@ -124,7 +178,6 @@ export default function CreateRequestPage() {
   return (
     <div className="min-h-screen bg-black pt-24">
       <div className="max-w-2xl mx-auto px-6 py-12">
-        {/* Back link */}
         <Link 
           href="/requests" 
           className="text-sm text-white/40 hover:text-white transition-colors font-mono"
@@ -132,7 +185,6 @@ export default function CreateRequestPage() {
           ← Back to Requests
         </Link>
 
-        {/* Header */}
         <div className="mt-8 mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
             Create Request
@@ -142,7 +194,6 @@ export default function CreateRequestPage() {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Request Type */}
           <div>
@@ -152,7 +203,7 @@ export default function CreateRequestPage() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, type: 'SPONSOR_BUY' })}
+                onClick={() => setFormData({ ...formData, type: 'SPONSOR_BUY', includeHeader: true })}
                 disabled={!canCreateSponsorRequest}
                 className={`p-6 border text-left transition-all ${
                   formData.type === 'SPONSOR_BUY'
@@ -186,6 +237,58 @@ export default function CreateRequestPage() {
               </button>
             </div>
           </div>
+
+          {/* Header Image Upload - Mandatory for SPONSOR_BUY */}
+          {formData.type === 'SPONSOR_BUY' && (
+            <div>
+              <label className="text-sm text-white/40 font-mono uppercase block mb-4">
+                Header Image <span className="text-red-400">*</span>
+              </label>
+              <p className="text-sm text-white/50 mb-4">
+                Upload the banner image you want creators to display (1500x500 recommended)
+              </p>
+              
+              {headerImagePreview ? (
+                <div className="relative">
+                  <div className="aspect-[3/1] relative border border-white/20 overflow-hidden">
+                    <Image
+                      src={headerImagePreview}
+                      alt="Header preview"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 p-2 bg-black/80 border border-white/20 text-white hover:bg-red-500/20 hover:border-red-500 transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-[3/1] border-2 border-dashed border-white/20 hover:border-white/40 cursor-pointer transition-all flex flex-col items-center justify-center"
+                >
+                  <svg className="w-12 h-12 text-white/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-white/50">Click to upload header image</span>
+                  <span className="text-xs text-white/30 mt-1">PNG, JPG up to 5MB</span>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </div>
+          )}
 
           {/* Title */}
           <div>
@@ -227,35 +330,44 @@ export default function CreateRequestPage() {
             <div className="text-xs text-white/30 mt-2">{formData.description.length}/2000</div>
           </div>
 
-          {/* Slot Types */}
+          {/* Slot Types - Header is always included for SPONSOR_BUY, Bio is optional */}
           <div>
             <label className="text-sm text-white/40 font-mono uppercase block mb-4">
-              Slot Types (select at least one)
+              Slot Types
             </label>
             <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={() => toggleSlotType('HEADER')}
-                className={`flex-1 p-4 border text-center transition-all ${
-                  formData.slotTypes.includes('HEADER')
-                    ? 'border-white bg-white/10'
-                    : 'border-white/20 hover:border-white/40'
+              <div
+                className={`flex-1 p-4 border text-center ${
+                  formData.type === 'SPONSOR_BUY' 
+                    ? 'border-white bg-white/10 cursor-not-allowed' 
+                    : formData.includeHeader 
+                      ? 'border-white bg-white/10 cursor-pointer' 
+                      : 'border-white/20 hover:border-white/40 cursor-pointer'
                 }`}
+                onClick={() => {
+                  if (formData.type !== 'SPONSOR_BUY') {
+                    setFormData({ ...formData, includeHeader: !formData.includeHeader });
+                  }
+                }}
               >
                 <span className="text-xl">🖼️</span>
                 <div className="text-white mt-1">Header</div>
-              </button>
+                {formData.type === 'SPONSOR_BUY' && (
+                  <div className="text-xs text-white/50 mt-1">Required</div>
+                )}
+              </div>
               <button
                 type="button"
-                onClick={() => toggleSlotType('BIO')}
+                onClick={() => setFormData({ ...formData, includeBio: !formData.includeBio })}
                 className={`flex-1 p-4 border text-center transition-all ${
-                  formData.slotTypes.includes('BIO')
+                  formData.includeBio
                     ? 'border-white bg-white/10'
                     : 'border-white/20 hover:border-white/40'
                 }`}
               >
                 <span className="text-xl">📝</span>
                 <div className="text-white mt-1">Bio</div>
+                <div className="text-xs text-white/50 mt-1">Optional</div>
               </button>
             </div>
           </div>

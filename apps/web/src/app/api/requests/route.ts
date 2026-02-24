@@ -13,6 +13,7 @@ const createRequestSchema = z.object({
   durationSeconds: z.number().int().positive(),
   amountLamports: z.string().transform((v) => BigInt(v)),
   maxWinners: z.number().int().positive().optional(),
+  headerImageUrl: z.string().url().optional().nullable(),
 });
 
 /**
@@ -120,6 +121,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // For SPONSOR_BUY with HEADER slot, headerImageUrl is required
+    if (validated.type === 'SPONSOR_BUY' && validated.slotTypes.includes('HEADER') && !validated.headerImageUrl) {
+      return NextResponse.json(
+        { success: false, error: 'Header image is required for sponsor requests with header slot' },
+        { status: 400 }
+      );
+    }
+
     const newRequest = await prisma.request.create({
       data: {
         type: validated.type as RequestType,
@@ -130,6 +139,7 @@ export async function POST(request: NextRequest) {
         durationSeconds: validated.durationSeconds,
         amountLamports: validated.amountLamports,
         maxWinners: validated.maxWinners,
+        headerImageUrl: validated.headerImageUrl,
       },
     });
 

@@ -1,5 +1,4 @@
 import { Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
 import {
   VERIFY_POLL_INTERVAL_MS,
   VERIFY_MAX_DURATION_MS,
@@ -16,8 +15,8 @@ import {
   notifyVerificationFailed,
 } from '../lib/notifications';
 import { verifyInitialQueue, keepAliveQueue, expiryQueue } from '../queues';
-
-const prisma = new PrismaClient();
+import { getWorkerAnchorClient } from '../lib/anchor';
+import { prisma } from '../lib/prisma';
 
 // RapidAPI configuration for twitter241
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
@@ -242,6 +241,21 @@ export async function processVerifyInitialJob(job: Job<VerifyInitialJobPayload>)
 
     const now = new Date();
     const endAt = new Date(now.getTime() + campaign.durationSeconds * 1000);
+
+    // Call on-chain to set LIVE
+    try {
+      const anchorClient = getWorkerAnchorClient();
+      const chainCampaignId = BigInt(campaign.chainCampaignId || '0');
+      const startTs = Math.floor(now.getTime() / 1000);
+      const endTs = Math.floor(endAt.getTime() / 1000);
+      
+      console.log(`[VerifyInitial] Calling platform_set_live on-chain...`);
+      const liveTxSig = await anchorClient.setLive(chainCampaignId, startTs, endTs);
+      console.log(`[VerifyInitial] On-chain set_live successful: ${liveTxSig}`);
+    } catch (onChainError) {
+      console.error(`[VerifyInitial] On-chain set_live failed:`, onChainError);
+      // Continue anyway - DB state is source of truth for now
+    }
 
     // Update to LIVE
     await prisma.campaign.update({

@@ -11,6 +11,8 @@ interface MockState {
     bioText: string;
     displayName: string;
     avatarUrl: string | null;
+    followersCount: number | null;
+    verified: boolean;
     headerMatch: boolean; // If false, returns a different header URL to simulate mismatch
   };
 }
@@ -22,6 +24,8 @@ const mockState: MockState = {
     bioText: 'Crypto enthusiast | Web3 builder | DeFi degen',
     displayName: 'Test Creator',
     avatarUrl: 'https://pbs.twimg.com/profile_images/default_avatar.png',
+    followersCount: 15420,
+    verified: true,
     headerMatch: true,
   },
   creator2: {
@@ -29,6 +33,8 @@ const mockState: MockState = {
     bioText: 'NFT collector | Building in public',
     displayName: 'Creator Two',
     avatarUrl: 'https://pbs.twimg.com/profile_images/default_avatar.png',
+    followersCount: 8750,
+    verified: false,
     headerMatch: true,
   },
 };
@@ -49,6 +55,8 @@ export class MockXProvider implements XProvider {
         bioText: `Bio for @${normalizedUsername}`,
         displayName: normalizedUsername,
         avatarUrl: 'https://pbs.twimg.com/profile_images/default_avatar.png',
+        followersCount: Math.floor(Math.random() * 50000) + 1000,
+        verified: false,
       };
     }
 
@@ -62,6 +70,8 @@ export class MockXProvider implements XProvider {
       bioText: state.bioText,
       displayName: state.displayName,
       avatarUrl: state.avatarUrl,
+      followersCount: state.followersCount,
+      verified: state.verified,
     };
   }
 
@@ -92,6 +102,8 @@ export function updateMockState(
       bioText: '',
       displayName: normalizedUsername,
       avatarUrl: null,
+      followersCount: null,
+      verified: false,
       headerMatch: true,
     };
   }

@@ -13,6 +13,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'abs.twimg.com',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
     ],
   },
 };
