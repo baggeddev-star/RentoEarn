@@ -4,7 +4,7 @@ import { useAccount } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '../providers/AuthProvider';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function isValidAvatarUrl(url: string | null | undefined): boolean {
   return !!(url && 
@@ -20,6 +20,8 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [devDropdownOpen, setDevDropdownOpen] = useState(false);
+  const devDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -66,11 +68,13 @@ export function Header() {
       >
         <div className="flex items-center justify-between gap-2">
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center transition-all duration-200 group-hover:bg-white group-hover:border-white">
-              <span className="font-bold text-xs sm:text-sm text-white group-hover:text-black">B</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="X Billboard" 
+              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+            />
             <span className="font-display text-base sm:text-lg font-semibold text-white hidden sm:block">
-              Billboard
+              X Billboard
             </span>
           </Link>
 
@@ -78,6 +82,29 @@ export function Header() {
             <NavLink href="/listings">Listings</NavLink>
             <NavLink href="/requests">Requests</NavLink>
             <NavLink href="/how-it-works">How It Works</NavLink>
+            <div className="relative" ref={devDropdownRef}>
+              <button
+                onClick={() => setDevDropdownOpen(!devDropdownOpen)}
+                className="px-4 py-2 text-sm text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-all duration-200 flex items-center gap-1"
+              >
+                Developers
+                <svg className={`w-4 h-4 transition-transform ${devDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {devDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-48 py-2 rounded-xl border border-white/10 backdrop-blur-xl bg-black/90 shadow-xl">
+                  <Link href="/x402" onClick={() => setDevDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all">
+                    <span className="w-6 h-6 rounded-md bg-blue-500/20 flex items-center justify-center text-blue-400 text-xs">$</span>
+                    <div><div className="font-medium">x402 APIs</div><div className="text-xs text-white/40">Pay-per-call</div></div>
+                  </Link>
+                  <Link href="/mcp" onClick={() => setDevDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all">
+                    <span className="w-6 h-6 rounded-md bg-purple-500/20 flex items-center justify-center text-purple-400 text-xs">⚡</span>
+                    <div><div className="font-medium">MCP Server</div><div className="text-xs text-white/40">AI Tools</div></div>
+                  </Link>
+                </div>
+              )}
+            </div>
             {user && (
               <>
                 <NavLink href="/dashboard/sponsor">Bookings</NavLink>

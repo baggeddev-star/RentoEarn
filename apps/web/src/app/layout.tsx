@@ -20,8 +20,24 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'Billboard Market — X Profile Rental Marketplace',
-  description: 'The Web3 marketplace for X profile rentals. Secured by Base escrow.',
+  title: 'X Billboard — Monetize Your X Profile Forever',
+  description: 'The Web3 marketplace for X profile rentals. Rent your header or bio slot, get paid in ETH. Secured by Base escrow.',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'X Billboard — Monetize Your X Profile Forever',
+    description: 'The Web3 marketplace for X profile rentals. Rent your header or bio slot, get paid in ETH.',
+    images: ['/og-image.png'],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'X Billboard — Monetize Your X Profile Forever',
+    description: 'The Web3 marketplace for X profile rentals. Rent your header or bio slot, get paid in ETH.',
+    images: ['/og-image.png'],
+  },
 };
 
 export default function RootLayout({

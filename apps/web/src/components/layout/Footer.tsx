@@ -120,15 +120,15 @@ export function Footer() {
 
       {/* Large Logo Background */}
       <div className="absolute inset-0 flex items-end justify-center pointer-events-none overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1 }}
-          className="text-[15vw] sm:text-[12vw] font-bold text-white/[0.03] whitespace-nowrap select-none leading-none pb-8"
-        >
-          BILLBOARD
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1 }}
+            className="text-[15vw] sm:text-[12vw] font-bold text-white/[0.03] whitespace-nowrap select-none leading-none pb-8"
+          >
+            X BILLBOARD
+          </motion.div>
       </div>
 
       {/* Footer Content */}
@@ -150,10 +150,10 @@ export function Footer() {
             <div className="mt-6">
               <span className="text-xs text-white/40 block mb-2">Contact us at:</span>
               <a 
-                href="mailto:hello@billboard.market" 
+                href="mailto:hello@xbillboard.com" 
                 className="inline-flex items-center gap-2 text-white hover:text-white/70 transition-colors font-mono text-lg"
               >
-                hello@billboard.market
+                hello@xbillboard.com
                 <span className="text-white/40">↗</span>
               </a>
             </div>
@@ -243,10 +243,8 @@ export function Footer() {
           className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/10"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 border border-white/20 flex items-center justify-center">
-              <span className="font-bold text-sm text-white">B</span>
-            </div>
-            <span className="text-sm text-white/40">© 2026 Billboard Market. All rights reserved.</span>
+            <img src="/logo.png" alt="X Billboard" className="w-10 h-10 object-contain" />
+            <span className="text-sm text-white/40">© 2026 X Billboard. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-white/40">
             <span className="flex items-center gap-2">
