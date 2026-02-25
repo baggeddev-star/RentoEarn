@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +7,176 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums
+model User {
+  id             String          @id @default(cuid())
+  wallet         String          @unique
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  creatorProfile CreatorProfile?
+  notifications  Notification[]
+
+  @@index([wallet])
+}
+
+model CreatorProfile {
+  id             String    @id @default(cuid())
+  wallet         String    @unique
+  xUsername      String    @unique
+  xUserId        String?   @unique
+  displayName    String?
+  avatarUrl      String?
+  verified       Boolean   @default(false)
+  verifyCode     String?
+  followersCount Int?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [wallet], references: [wallet], onDelete: Cascade)
+  listings       Listing[]
+
+  @@index([wallet])
+  @@index([xUsername])
+  @@index([xUserId])
+}
+
+model Listing {
+  id               String         @id @default(cuid())
+  creatorWallet    String
+  slotType         SlotType
+  price24hLamports BigInt
+  price7dLamports  BigInt
+  price30dLamports BigInt
+  active           Boolean        @default(true)
+  requiresApproval Boolean        @default(true)
+  description      String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  campaigns        Campaign[]
+  creator          CreatorProfile @relation(fields: [creatorWallet], references: [wallet], onDelete: Cascade)
+
+  @@index([creatorWallet])
+  @@index([slotType])
+  @@index([active])
+}
+
+model Request {
+  id              String               @id @default(cuid())
+  type            RequestType
+  createdByWallet String
+  title           String
+  description     String
+  slotTypes       SlotType[]
+  durationSeconds Int
+  amountLamports  BigInt
+  status          RequestStatus        @default(OPEN)
+  maxWinners      Int?
+  headerImageUrl  String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  campaigns       Campaign[]
+  applications    RequestApplication[]
+
+  @@index([createdByWallet])
+  @@index([type])
+  @@index([status])
+}
+
+model RequestApplication {
+  id                     String            @id @default(cuid())
+  requestId              String
+  applicantWallet        String
+  message                String?
+  proposedAmountLamports BigInt?
+  status                 ApplicationStatus @default(APPLIED)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  request                Request           @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, applicantWallet])
+  @@index([requestId])
+  @@index([applicantWallet])
+  @@index([status])
+}
+
+model Campaign {
+  id                   String            @id @default(cuid())
+  chainCampaignId      BigInt?           @unique
+  listingId            String?
+  requestId            String?
+  sponsorWallet        String
+  creatorWallet        String
+  slotType             SlotType
+  durationSeconds      Int
+  amountLamports       BigInt
+  status               CampaignStatus    @default(DRAFT)
+  expectedBannerUrl    String?
+  expectedSha256       String?
+  expectedHash         String?
+  requiredBioSubstring String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  applyTimeoutAt       DateTime?
+  startAt              DateTime?
+  endAt                DateTime?
+  lastCheckedAt        DateTime?
+  hardCancelAt         DateTime?
+  hardCancelReason     String?
+  depositTxSig         String?
+  refundTxSig          String?
+  claimTxSig           String?
+  listing              Listing?          @relation(fields: [listingId], references: [id])
+  request              Request?          @relation(fields: [requestId], references: [id])
+  verificationLogs     VerificationLog[]
+
+  @@index([chainCampaignId])
+  @@index([sponsorWallet])
+  @@index([creatorWallet])
+  @@index([status])
+  @@index([listingId])
+  @@index([requestId])
+}
+
+model VerificationLog {
+  id           String   @id @default(cuid())
+  campaignId   String
+  checkedAt    DateTime @default(now())
+  headerOk     Boolean
+  hashDistance Int
+  headerUrl    String?
+  expectedHash String?
+  actualHash   String?
+  notes        String?
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([checkedAt])
+}
+
+model ActivityEvent {
+  id           String   @id @default(cuid())
+  type         String
+  metadataJson String
+  createdAt    DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  wallet    String
+  type      String
+  title     String
+  body      String
+  metadata  String?
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+  user      User      @relation(fields: [wallet], references: [wallet], onDelete: Cascade)
+
+  @@index([wallet])
+  @@index([createdAt])
+  @@index([readAt])
+}
+
 enum SlotType {
   HEADER
   BIO
@@ -45,191 +211,4 @@ enum ApplicationStatus {
   APPLIED
   ACCEPTED
   REJECTED
-}
-
-// Models
-model User {
-  id        String   @id @default(cuid())
-  wallet    String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  creatorProfile CreatorProfile?
-  notifications  Notification[]
-
-  @@index([wallet])
-}
-
-model CreatorProfile {
-  id             String   @id @default(cuid())
-  wallet         String   @unique
-  xUsername      String   @unique
-  xUserId        String?  @unique  // Twitter user ID from OAuth
-  displayName    String?
-  avatarUrl      String?
-  verified       Boolean  @default(false)
-  verifyCode     String?
-  followersCount Int?     // X followers count
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  user     User      @relation(fields: [wallet], references: [wallet], onDelete: Cascade)
-  listings Listing[]
-
-  @@index([wallet])
-  @@index([xUsername])
-  @@index([xUserId])
-}
-
-model Listing {
-  id                String   @id @default(cuid())
-  creatorWallet     String
-  slotType          SlotType
-  price24hLamports  BigInt
-  price7dLamports   BigInt
-  price30dLamports  BigInt
-  active            Boolean  @default(true)
-  requiresApproval  Boolean  @default(true)
-  description       String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
-  creator   CreatorProfile @relation(fields: [creatorWallet], references: [wallet], onDelete: Cascade)
-  campaigns Campaign[]
-
-  @@index([creatorWallet])
-  @@index([slotType])
-  @@index([active])
-}
-
-model Request {
-  id              String        @id @default(cuid())
-  type            RequestType
-  createdByWallet String
-  title           String
-  description     String
-  slotTypes       SlotType[]
-  durationSeconds Int
-  amountLamports  BigInt
-  status          RequestStatus @default(OPEN)
-  maxWinners      Int?
-  headerImageUrl  String?       // Header image URL for SPONSOR_BUY requests
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  // Relations
-  applications RequestApplication[]
-  campaigns    Campaign[]
-
-  @@index([createdByWallet])
-  @@index([type])
-  @@index([status])
-}
-
-model RequestApplication {
-  id                     String            @id @default(cuid())
-  requestId              String
-  applicantWallet        String
-  message                String?
-  proposedAmountLamports BigInt?
-  status                 ApplicationStatus @default(APPLIED)
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
-
-  // Relations
-  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
-
-  @@unique([requestId, applicantWallet])
-  @@index([requestId])
-  @@index([applicantWallet])
-  @@index([status])
-}
-
-model Campaign {
-  id                   String         @id @default(cuid())
-  chainCampaignId      BigInt?        @unique
-  listingId            String?
-  requestId            String?
-  sponsorWallet        String
-  creatorWallet        String
-  slotType             SlotType
-  durationSeconds      Int
-  amountLamports       BigInt
-  status               CampaignStatus @default(DRAFT)
-  expectedBannerUrl    String?
-  expectedSha256       String?
-  expectedHash         String?
-  requiredBioSubstring String?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  applyTimeoutAt       DateTime?
-  startAt              DateTime?
-  endAt                DateTime?
-  lastCheckedAt        DateTime?
-  hardCancelAt         DateTime?
-  hardCancelReason     String?
-  depositTxSig         String?
-  refundTxSig          String?
-  claimTxSig           String?
-
-  // Relations
-  listing          Listing?          @relation(fields: [listingId], references: [id], onDelete: SetNull)
-  request          Request?          @relation(fields: [requestId], references: [id], onDelete: SetNull)
-  verificationLogs VerificationLog[]
-
-  @@index([chainCampaignId])
-  @@index([sponsorWallet])
-  @@index([creatorWallet])
-  @@index([status])
-  @@index([listingId])
-  @@index([requestId])
-}
-
-model VerificationLog {
-  id           String   @id @default(cuid())
-  campaignId   String
-  checkedAt    DateTime @default(now())
-  headerOk     Boolean
-  hashDistance Int
-  headerUrl    String?
-  expectedHash String?
-  actualHash   String?
-  notes        String?
-
-  // Relations
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  @@index([campaignId])
-  @@index([checkedAt])
-}
-
-model ActivityEvent {
-  id           String   @id @default(cuid())
-  type         String
-  metadataJson String   @db.Text
-  createdAt    DateTime @default(now())
-
-  @@index([type])
-  @@index([createdAt])
-}
-
-model Notification {
-  id        String    @id @default(cuid())
-  wallet    String
-  type      String
-  title     String
-  body      String
-  metadata  String?   @db.Text
-  createdAt DateTime  @default(now())
-  readAt    DateTime?
-
-  // Relations
-  user User @relation(fields: [wallet], references: [wallet], onDelete: Cascade)
-
-  @@index([wallet])
-  @@index([createdAt])
-  @@index([readAt])
 }

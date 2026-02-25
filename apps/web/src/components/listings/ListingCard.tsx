@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { formatEther } from 'viem';
 import { Avatar } from '@/components/ui/Avatar';
 
 interface ListingCardProps {
@@ -19,10 +20,24 @@ interface ListingCardProps {
       followersCount?: number | null;
     } | null;
   };
+  ethPrice?: number;
 }
 
-function formatSol(lamports: string): string {
-  return (Number(lamports) / 1_000_000_000).toFixed(2);
+function formatEth(wei: string): string {
+  const eth = Number(formatEther(BigInt(wei)));
+  if (eth < 0.0001) return eth.toExponential(2);
+  if (eth < 0.01) return eth.toFixed(6);
+  if (eth < 1) return eth.toFixed(4);
+  return eth.toFixed(2);
+}
+
+function formatUsd(wei: string, ethPrice: number): string {
+  const eth = Number(formatEther(BigInt(wei)));
+  const usd = eth * ethPrice;
+  if (usd < 0.01) return '<$0.01';
+  if (usd < 1) return `$${usd.toFixed(2)}`;
+  if (usd < 1000) return `$${usd.toFixed(2)}`;
+  return `$${usd.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
 function formatFollowers(count: number | null | undefined): string {
@@ -36,9 +51,9 @@ function formatFollowers(count: number | null | undefined): string {
   return count.toString();
 }
 
-export function ListingCard({ listing }: ListingCardProps) {
-  // Use 7d price as the main/default price
-  const mainPrice = formatSol(listing.price7dLamports);
+export function ListingCard({ listing, ethPrice = 2800 }: ListingCardProps) {
+  const mainPrice = formatEth(listing.price7dLamports);
+  const usdPrice = formatUsd(listing.price7dLamports, ethPrice);
 
   return (
     <Link href={`/listings/${listing.id}`}>
@@ -95,11 +110,12 @@ export function ListingCard({ listing }: ListingCardProps) {
           </p>
         )}
 
-        {/* Price - Simple */}
+        {/* Price */}
         <div className="pt-4 border-t border-white/10 mt-auto">
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-white tabular-nums">{mainPrice}</span>
-            <span className="text-white/40">◎</span>
+            <span className="text-white/40">ETH</span>
+            <span className="text-sm text-white/40">({usdPrice})</span>
           </div>
           <span className="text-xs text-white/40">per week</span>
         </div>

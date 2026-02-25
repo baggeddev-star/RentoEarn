@@ -21,7 +21,7 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: 'Billboard Market — X Profile Rental Marketplace',
-  description: 'The Web3 marketplace for X profile rentals. Secured by Solana escrow.',
+  description: 'The Web3 marketplace for X profile rentals. Secured by Base escrow.',
 };
 
 export default function RootLayout({

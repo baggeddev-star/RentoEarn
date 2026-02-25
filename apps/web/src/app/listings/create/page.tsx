@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Link from 'next/link';
 
-const LAMPORTS_PER_SOL = 1_000_000_000;
+const WEI_PER_ETH = 1_000_000_000_000_000_000n;
 
 export default function CreateListingPage() {
   const router = useRouter();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const [formData, setFormData] = useState({
     slotType: 'HEADER' as 'HEADER' | 'BIO',
@@ -22,13 +23,16 @@ export default function CreateListingPage() {
     description: '',
   });
 
+  useEffect(() => {
+    refreshUser();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
     try {
-      // Validate prices
       const price24h = parseFloat(formData.price24h);
       const price7d = parseFloat(formData.price7d);
       const price30d = parseFloat(formData.price30d);
@@ -41,10 +45,9 @@ export default function CreateListingPage() {
         throw new Error('Prices must be greater than 0');
       }
 
-      // Convert SOL to lamports
-      const price24hLamports = Math.floor(price24h * LAMPORTS_PER_SOL).toString();
-      const price7dLamports = Math.floor(price7d * LAMPORTS_PER_SOL).toString();
-      const price30dLamports = Math.floor(price30d * LAMPORTS_PER_SOL).toString();
+      const price24hWei = (BigInt(Math.floor(price24h * 1e18))).toString();
+      const price7dWei = (BigInt(Math.floor(price7d * 1e18))).toString();
+      const price30dWei = (BigInt(Math.floor(price30d * 1e18))).toString();
 
       const res = await fetch('/api/listings', {
         method: 'POST',
@@ -52,9 +55,9 @@ export default function CreateListingPage() {
         credentials: 'include',
         body: JSON.stringify({
           slotType: formData.slotType,
-          price24hLamports,
-          price7dLamports,
-          price30dLamports,
+          price24hLamports: price24hWei,
+          price7dLamports: price7dWei,
+          price30dLamports: price30dWei,
           requiresApproval: formData.requiresApproval,
           description: formData.description || undefined,
         }),
@@ -63,10 +66,13 @@ export default function CreateListingPage() {
       const data = await res.json();
 
       if (!data.success) {
+        if (res.status === 401) {
+          setSessionExpired(true);
+          await refreshUser();
+        }
         throw new Error(data.error || 'Failed to create listing');
       }
 
-      // Redirect to the new listing
       router.push(`/listings/${data.data.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -77,6 +83,10 @@ export default function CreateListingPage() {
 
   if (isLoading) {
     return <LoadingState />;
+  }
+
+  if (sessionExpired) {
+    return <SessionExpired />;
   }
 
   if (!user) {
@@ -148,7 +158,7 @@ export default function CreateListingPage() {
           {/* Pricing */}
           <div>
             <label className="text-sm text-white/40 font-mono uppercase block mb-4">
-              Pricing (SOL)
+              Pricing (ETH)
             </label>
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -156,7 +166,7 @@ export default function CreateListingPage() {
                 <div className="relative">
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.0001"
                     min="0"
                     value={formData.price24h}
                     onChange={(e) => setFormData({ ...formData, price24h: e.target.value })}
@@ -164,7 +174,7 @@ export default function CreateListingPage() {
                     className="w-full px-4 py-3 bg-black border border-white/20 text-white font-mono focus:border-white focus:outline-none transition-colors"
                     required
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">◎</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">ETH</span>
                 </div>
               </div>
               <div>
@@ -172,7 +182,7 @@ export default function CreateListingPage() {
                 <div className="relative">
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.0001"
                     min="0"
                     value={formData.price7d}
                     onChange={(e) => setFormData({ ...formData, price7d: e.target.value })}
@@ -180,7 +190,7 @@ export default function CreateListingPage() {
                     className="w-full px-4 py-3 bg-black border border-white/20 text-white font-mono focus:border-white focus:outline-none transition-colors"
                     required
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">◎</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">ETH</span>
                 </div>
               </div>
               <div>
@@ -188,7 +198,7 @@ export default function CreateListingPage() {
                 <div className="relative">
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.0001"
                     min="0"
                     value={formData.price30d}
                     onChange={(e) => setFormData({ ...formData, price30d: e.target.value })}
@@ -196,7 +206,7 @@ export default function CreateListingPage() {
                     className="w-full px-4 py-3 bg-black border border-white/20 text-white font-mono focus:border-white focus:outline-none transition-colors"
                     required
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">◎</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">ETH</span>
                 </div>
               </div>
             </div>
@@ -281,7 +291,7 @@ export default function CreateListingPage() {
           <h3 className="font-semibold text-white mb-3">How it works</h3>
           <ul className="space-y-2 text-sm text-white/50">
             <li>• Your listing will be visible to all sponsors</li>
-            <li>• Sponsors deposit SOL into escrow when booking</li>
+            <li>• Sponsors deposit ETH into escrow when booking</li>
             <li>• You apply the banner/bio change to your profile</li>
             <li>• Our system verifies the change automatically</li>
             <li>• You claim your earnings after the campaign ends</li>
@@ -304,6 +314,28 @@ function LoadingState() {
             <div key={i} className="h-32 bg-white/5 animate-pulse" />
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionExpired() {
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center max-w-md px-6">
+        <div className="w-16 h-16 mx-auto mb-6 border border-yellow-500/50 bg-yellow-500/10 flex items-center justify-center text-3xl">
+          ⏰
+        </div>
+        <h1 className="text-2xl font-bold text-white mb-4">Session Expired</h1>
+        <p className="text-white/50 mb-8">
+          Your session has expired. Please sign in again by clicking the &quot;Sign In&quot; button in the header.
+        </p>
+        <Link 
+          href="/listings" 
+          className="inline-block px-6 py-3 border border-white text-white hover:bg-white hover:text-black transition-all"
+        >
+          Back to Listings
+        </Link>
       </div>
     </div>
   );

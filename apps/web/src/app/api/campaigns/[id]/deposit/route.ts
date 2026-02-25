@@ -8,7 +8,7 @@ interface RouteParams {
 
 /**
  * POST /api/campaigns/[id]/deposit
- * Record deposit transaction signature and update status
+ * Record deposit transaction hash and update status
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
@@ -47,25 +47,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   const body = await request.json();
-  const { txSignature } = body;
+  const { txHash } = body;
 
-  if (!txSignature) {
+  if (!txHash) {
     return NextResponse.json(
-      { success: false, error: 'Transaction signature required' },
+      { success: false, error: 'Transaction hash required' },
       { status: 400 }
     );
   }
 
-  // Update campaign with deposit info
   const updated = await prisma.campaign.update({
     where: { id },
     data: {
       status: 'DEPOSITED',
-      depositTxSig: txSignature,
+      depositTxSig: txHash,
     },
   });
 
-  // Create notification for creator
   await prisma.notification.create({
     data: {
       wallet: campaign.creatorWallet,

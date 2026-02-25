@@ -4,16 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { formatEther } from 'viem';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { CampaignTimeline } from '@/components/campaigns/CampaignTimeline';
 import { VerificationLogs } from '@/components/campaigns/VerificationLogs';
-import { PublicKey, Transaction } from '@solana/web3.js';
-import {
-  buildCreatorAcceptInstruction,
-  buildCreatorRejectInstruction,
-  buildCreatorClaimInstruction,
-} from '@/lib/anchor/browser';
+import { BILLBOARD_MARKET_ABI, CONTRACT_ADDRESS } from '@/lib/evm/abi';
 
 interface Campaign {
   id: string;
@@ -54,8 +50,8 @@ interface Campaign {
   }[];
 }
 
-function formatSol(lamports: string): string {
-  return (Number(lamports) / 1_000_000_000).toFixed(4);
+function formatEth(wei: string): string {
+  return Number(formatEther(BigInt(wei))).toFixed(4);
 }
 
 function formatDate(dateStr: string): string {
@@ -79,14 +75,16 @@ export default function CampaignPage({
 }) {
   const router = useRouter();
   const { user } = useAuth();
-  const { publicKey, sendTransaction, connected } = useWallet();
-  const { connection } = useConnection();
+  const { address, isConnected } = useAccount();
+  const { writeContract, data: hash, isPending, error: writeError, reset: resetWrite } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   
   // Banner upload state
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -96,6 +94,25 @@ export default function CampaignPage({
   
   // Bio text state
   const [bioText, setBioText] = useState('');
+
+  // Handle writeContract errors
+  useEffect(() => {
+    if (writeError && pendingAction) {
+      console.error('[Campaign] Write contract error:', writeError);
+      let errorMessage = 'Transaction failed';
+      if (writeError.message.includes('User rejected')) {
+        errorMessage = 'Transaction was rejected by user';
+      } else if (writeError.message.includes('exceeds maximum per-transaction gas limit')) {
+        errorMessage = 'Contract call failed - please try again';
+      } else if (writeError.message.includes('execution reverted')) {
+        errorMessage = 'Contract execution reverted';
+      }
+      setActionError(errorMessage);
+      setActionLoading(null);
+      setPendingAction(null);
+      resetWrite();
+    }
+  }, [writeError, pendingAction, resetWrite]);
 
   // Fetch campaign
   useEffect(() => {
@@ -120,6 +137,23 @@ export default function CampaignPage({
     
     fetchCampaign();
   }, [params]);
+
+  // Handle transaction confirmation
+  useEffect(() => {
+    if (isSuccess && hash && pendingAction && campaign) {
+      handleTxConfirmed(hash, pendingAction);
+    }
+  }, [isSuccess, hash, pendingAction]);
+
+  const handleTxConfirmed = async (txHash: string, action: string) => {
+    if (!campaign) return;
+    try {
+      await handleAction(action, action, { txHash });
+    } finally {
+      setPendingAction(null);
+      setActionLoading(null);
+    }
+  };
 
   const isSponsor = user?.wallet === campaign?.sponsorWallet;
   const isCreator = user?.wallet === campaign?.creatorWallet;
@@ -160,98 +194,79 @@ export default function CampaignPage({
 
   // On-chain action for creator to accept
   const handleApprove = async () => {
-    if (!campaign || !publicKey || !sendTransaction || !campaign.chainCampaignId) return;
+    if (!campaign || !address || !campaign.chainCampaignId) return;
     
     setActionLoading('approve');
     setActionError(null);
+    setPendingAction('approve');
 
     try {
       const chainCampaignId = BigInt(campaign.chainCampaignId);
       
-      // Build the creator_accept instruction
-      const instruction = buildCreatorAcceptInstruction(publicKey, chainCampaignId);
-      
-      // Create and send transaction
-      const transaction = new Transaction().add(instruction);
-      transaction.feePayer = publicKey;
-      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
-      const txSignature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(txSignature, 'confirmed');
-
-      console.log('[Campaign] Creator accept tx:', txSignature);
-
-      // Update backend
-      await handleAction('approve', 'approve', { txSignature });
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: BILLBOARD_MARKET_ABI,
+        functionName: 'creatorAccept',
+        args: [chainCampaignId],
+        gas: BigInt(200000),
+      });
     } catch (err) {
       console.error('[Campaign] Approve error:', err);
       setActionError(err instanceof Error ? err.message : 'Failed to approve');
       setActionLoading(null);
+      setPendingAction(null);
     }
   };
 
   // On-chain action for creator to reject (refunds sponsor)
   const handleReject = async () => {
-    if (!campaign || !publicKey || !sendTransaction || !campaign.chainCampaignId) return;
+    if (!campaign || !address || !campaign.chainCampaignId) return;
     
     setActionLoading('reject');
     setActionError(null);
+    setPendingAction('reject');
 
     try {
       const chainCampaignId = BigInt(campaign.chainCampaignId);
-      const sponsorPubkey = new PublicKey(campaign.sponsorWallet);
       
-      // Build the creator_reject instruction
-      const instruction = buildCreatorRejectInstruction(publicKey, chainCampaignId, sponsorPubkey);
-      
-      // Create and send transaction
-      const transaction = new Transaction().add(instruction);
-      transaction.feePayer = publicKey;
-      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
-      const txSignature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(txSignature, 'confirmed');
-
-      console.log('[Campaign] Creator reject tx:', txSignature);
-
-      // Update backend
-      await handleAction('reject', 'reject', { txSignature });
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: BILLBOARD_MARKET_ABI,
+        functionName: 'creatorReject',
+        args: [chainCampaignId],
+        gas: BigInt(200000),
+      });
     } catch (err) {
       console.error('[Campaign] Reject error:', err);
       setActionError(err instanceof Error ? err.message : 'Failed to reject');
       setActionLoading(null);
+      setPendingAction(null);
     }
   };
 
   // On-chain action for creator to claim funds after expiry
   const handleClaim = async () => {
-    if (!campaign || !publicKey || !sendTransaction || !campaign.chainCampaignId) return;
+    if (!campaign || !address || !campaign.chainCampaignId) return;
     
     setActionLoading('claim');
     setActionError(null);
+    setPendingAction('claim');
 
     try {
       const chainCampaignId = BigInt(campaign.chainCampaignId);
       
-      // Build the creator_claim instruction
-      const instruction = buildCreatorClaimInstruction(publicKey, chainCampaignId);
-      
-      // Create and send transaction
-      const transaction = new Transaction().add(instruction);
-      transaction.feePayer = publicKey;
-      transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
-      const txSignature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(txSignature, 'confirmed');
-
-      console.log('[Campaign] Creator claim tx:', txSignature);
-
-      // Update backend
-      await handleAction('claim', 'claim', { txSignature });
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: BILLBOARD_MARKET_ABI,
+        functionName: 'creatorClaim',
+        args: [chainCampaignId],
+        gas: BigInt(200000),
+      });
     } catch (err) {
       console.error('[Campaign] Claim error:', err);
       setActionError(err instanceof Error ? err.message : 'Failed to claim');
       setActionLoading(null);
+      setPendingAction(null);
     }
   };
 
@@ -487,7 +502,7 @@ export default function CampaignPage({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white mb-1">Deposit funds to escrow</p>
-                  <p className="text-white/50 text-sm">Amount: {formatSol(campaign.amountLamports)} SOL</p>
+                  <p className="text-white/50 text-sm">Amount: {formatEth(campaign.amountLamports)} ETH</p>
                 </div>
                 <button
                   onClick={handleDeposit}
@@ -503,7 +518,7 @@ export default function CampaignPage({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white mb-1">Review and approve this campaign</p>
-                  <p className="text-white/50 text-sm">Sponsor has deposited {formatSol(campaign.amountLamports)} SOL</p>
+                  <p className="text-white/50 text-sm">Sponsor has deposited {formatEth(campaign.amountLamports)} ETH</p>
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -720,7 +735,7 @@ export default function CampaignPage({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white mb-1">Campaign completed! Claim your earnings</p>
-                  <p className="text-white/50 text-sm">Amount: {formatSol(campaign.amountLamports)} SOL</p>
+                  <p className="text-white/50 text-sm">Amount: {formatEth(campaign.amountLamports)} ETH</p>
                 </div>
                 <button
                   onClick={handleClaim}
@@ -757,7 +772,7 @@ export default function CampaignPage({
               </div>
               <div>
                   <dt className="text-sm text-white/40 font-mono uppercase mb-1">AMOUNT</dt>
-                  <dd className="font-mono text-sm text-white font-medium tabular-nums">{formatSol(campaign.amountLamports)} ◎</dd>
+                  <dd className="font-mono text-sm text-white font-medium tabular-nums">{formatEth(campaign.amountLamports)} ETH</dd>
               </div>
               <div>
                   <dt className="text-sm text-white/40 font-mono uppercase mb-1">DURATION</dt>
@@ -881,7 +896,7 @@ function TransactionLink({ label, txSig }: { label: string; txSig: string }) {
         </span>
       ) : (
         <a
-          href={`https://solscan.io/tx/${txSig}?cluster=devnet`}
+          href={`https://sepolia.basescan.org/tx/${txSig}`}
                     target="_blank"
                     rel="noopener noreferrer"
           className="font-mono text-sm text-white/70 hover:text-white transition-colors"

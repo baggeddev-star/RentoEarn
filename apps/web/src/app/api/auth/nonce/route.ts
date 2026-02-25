@@ -9,20 +9,20 @@ import { REDIS_PREFIX } from '@shared/types';
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const publicKey = searchParams.get('publicKey');
+  const address = searchParams.get('address');
 
-  if (!publicKey) {
+  if (!address) {
     return NextResponse.json(
-      { success: false, error: 'publicKey is required' },
+      { success: false, error: 'address is required' },
       { status: 400 }
     );
   }
 
+  const normalizedAddress = address.toLowerCase();
   const nonce = generateNonce();
-  const message = generateSignInMessage(publicKey, nonce);
+  const message = generateSignInMessage(address, nonce);
 
-  // Store nonce in Redis with 10 minute expiry
-  await redis.set(`${REDIS_PREFIX}nonce:${publicKey}`, nonce, 'EX', 600);
+  await redis.set(`${REDIS_PREFIX}nonce:${normalizedAddress}`, nonce, 'EX', 600);
 
   return NextResponse.json({
     success: true,

@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import { getAuthFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getXProvider } from '@/lib/x-provider';
 
 /**
  * POST /api/x/link-twitter
- * Link Twitter account (from NextAuth session) with Solana wallet
+ * Link Twitter account (from NextAuth session) with EVM wallet
  * This creates/updates the CreatorProfile with verified status
  */
 export async function POST(request: NextRequest) {
-  // 1. Check wallet auth (Solana signature)
+  // 1. Check wallet auth (EVM signature)
   const walletAuth = await getAuthFromRequest(request);
   if (!walletAuth) {
     return NextResponse.json(

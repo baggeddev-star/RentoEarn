@@ -1,11 +1,10 @@
 import { Job } from 'bullmq';
-import { PublicKey } from '@solana/web3.js';
 import { DEFAULT_HASH_MAX_DISTANCE } from '@shared/types';
 import type { KeepAliveJobPayload } from '@shared/types';
 import { verifyHeader } from '../lib/verification';
 import { notifyHardCancel } from '../lib/notifications';
 import { keepAliveQueue, expiryQueue } from '../queues';
-import { getWorkerAnchorClient } from '../lib/anchor';
+import { getWorkerEVMClient } from '../lib/evm';
 import { prisma } from '../lib/prisma';
 
 // RapidAPI configuration for twitter241
@@ -52,8 +51,8 @@ async function fetchXSnapshot(username: string): Promise<XSnapshot> {
     if (!response.ok) {
       throw new Error(`Failed to fetch X snapshot: ${response.status}`);
     }
-    const data = await response.json();
-    return data.data?.state || data.data;
+    const data = await response.json() as { data?: { state?: XSnapshot } & XSnapshot };
+    return data.data?.state || data.data as XSnapshot;
   }
 
   // Use RapidAPI in production
@@ -72,7 +71,7 @@ async function fetchXSnapshot(username: string): Promise<XSnapshot> {
     throw new Error(`RapidAPI request failed: ${response.status} ${response.statusText}`);
   }
 
-  const data: Twitter241Response = await response.json();
+  const data = await response.json() as Twitter241Response;
 
   if (data.error || data.message) {
     throw new Error(data.error || data.message || 'Unknown API error');
@@ -253,12 +252,11 @@ export async function processKeepAliveJob(job: Job<KeepAliveJobPayload>) {
 
     // 3. Trigger on-chain refund
     try {
-      const anchorClient = getWorkerAnchorClient();
+      const evmClient = getWorkerEVMClient();
       const chainCampaignId = BigInt(campaign.chainCampaignId || '0');
-      const sponsorPubkey = new PublicKey(campaign.sponsorWallet);
       
-      console.log(`[KeepAlive] Calling platform_hard_cancel_and_refund on-chain...`);
-      const refundTxSig = await anchorClient.hardCancelAndRefund(chainCampaignId, sponsorPubkey);
+      console.log(`[KeepAlive] Calling platformHardCancelAndRefund on-chain...`);
+      const refundTxSig = await evmClient.hardCancelAndRefund(chainCampaignId);
       console.log(`[KeepAlive] On-chain refund successful: ${refundTxSig}`);
       
       // Update DB with refund tx signature

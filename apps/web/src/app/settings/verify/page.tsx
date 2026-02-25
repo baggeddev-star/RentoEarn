@@ -193,7 +193,7 @@ export default function VerifyPage() {
                 <p className="text-sm text-white/50">
                   {walletConnected 
                     ? `Connected: ${user.wallet.slice(0, 4)}...${user.wallet.slice(-4)}`
-                    : 'Connect your Solana wallet'}
+                    : 'Connect your EVM wallet'}
                 </p>
               </div>
             </div>

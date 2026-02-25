@@ -1,8 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
-import bs58 from 'bs58';
+import { useAccount, useSignMessage, useDisconnect } from 'wagmi';
 
 interface AuthUser {
   wallet: string;
@@ -38,22 +37,21 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { publicKey, signMessage, connected, disconnect } = useWallet();
+  const { address, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const { disconnect } = useDisconnect();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check session on mount
   useEffect(() => {
     refreshUser();
   }, []);
 
-  // Handle wallet connection changes
   useEffect(() => {
-    if (!connected && user) {
-      // Wallet disconnected, sign out
+    if (!isConnected && user) {
       signOut();
     }
-  }, [connected]);
+  }, [isConnected]);
 
   async function refreshUser() {
     try {
@@ -78,16 +76,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   async function signIn() {
-    if (!publicKey || !signMessage) {
+    if (!address) {
       throw new Error('Wallet not connected');
     }
 
     setIsLoading(true);
 
     try {
-      // Get nonce
       const nonceRes = await fetch(
-        `/api/auth/nonce?publicKey=${publicKey.toBase58()}`,
+        `/api/auth/nonce?address=${address}`,
         { credentials: 'include' }
       );
       const nonceData = await nonceRes.json();
@@ -98,20 +95,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const { message } = nonceData.data;
 
-      // Sign message
-      const messageBytes = new TextEncoder().encode(message);
-      const signature = await signMessage(messageBytes);
-      const signatureBase58 = bs58.encode(signature);
+      const signature = await signMessageAsync({ message });
 
-      // Submit signature
       const signInRes = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           message,
-          signature: signatureBase58,
-          publicKey: publicKey.toBase58(),
+          signature,
+          address,
         }),
       });
 

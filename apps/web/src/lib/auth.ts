@@ -1,6 +1,4 @@
-import { Connection, PublicKey } from '@solana/web3.js';
-import nacl from 'tweetnacl';
-import bs58 from 'bs58';
+import { verifyMessage, getAddress } from 'viem';
 import { SignJWT, jwtVerify } from 'jose';
 import { AUTH_MESSAGE_STATEMENT, AUTH_MESSAGE_VALIDITY_MS, SESSION_VALIDITY_MS } from '@shared/types';
 
@@ -17,33 +15,34 @@ export interface AuthPayload {
 /**
  * Generate a sign-in message for wallet signature
  */
-export function generateSignInMessage(publicKey: string, nonce: string): string {
+export function generateSignInMessage(address: string, nonce: string): string {
   const now = new Date();
   const expiration = new Date(now.getTime() + AUTH_MESSAGE_VALIDITY_MS);
 
   return `${AUTH_MESSAGE_STATEMENT}
 
 Domain: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}
-Public Key: ${publicKey}
+Address: ${address}
 Nonce: ${nonce}
 Issued At: ${now.toISOString()}
 Expiration Time: ${expiration.toISOString()}`;
 }
 
 /**
- * Verify a signed message from a Solana wallet
+ * Verify a signed message from an EVM wallet
  */
-export function verifySignature(
+export async function verifySignature(
   message: string,
-  signature: string,
-  publicKey: string
-): boolean {
+  signature: `0x${string}`,
+  address: string
+): Promise<boolean> {
   try {
-    const messageBytes = new TextEncoder().encode(message);
-    const signatureBytes = bs58.decode(signature);
-    const publicKeyBytes = new PublicKey(publicKey).toBytes();
-
-    return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
+    const recoveredAddress = await verifyMessage({
+      address: getAddress(address),
+      message,
+      signature,
+    });
+    return recoveredAddress;
   } catch (error) {
     console.error('Signature verification failed:', error);
     return false;
@@ -55,7 +54,7 @@ export function verifySignature(
  */
 export function parseSignInMessage(message: string): {
   valid: boolean;
-  publicKey?: string;
+  address?: string;
   nonce?: string;
   issuedAt?: Date;
   expirationTime?: Date;
@@ -73,19 +72,18 @@ export function parseSignInMessage(message: string): {
       }
     }
 
-    const publicKey = data['Public Key'];
+    const address = data['Address'];
     const nonce = data['Nonce'];
     const issuedAt = data['Issued At'] ? new Date(data['Issued At']) : undefined;
     const expirationTime = data['Expiration Time'] ? new Date(data['Expiration Time']) : undefined;
 
-    // Validate expiration
     if (expirationTime && expirationTime < new Date()) {
       return { valid: false };
     }
 
     return {
-      valid: !!(publicKey && nonce && issuedAt && expirationTime),
-      publicKey,
+      valid: !!(address && nonce && issuedAt && expirationTime),
+      address,
       nonce,
       issuedAt,
       expirationTime,
@@ -130,7 +128,7 @@ export async function verifySessionToken(token: string): Promise<AuthPayload | n
 export function generateNonce(): string {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  return bs58.encode(array);
+  return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**

@@ -15,7 +15,7 @@ import {
   notifyVerificationFailed,
 } from '../lib/notifications';
 import { verifyInitialQueue, keepAliveQueue, expiryQueue } from '../queues';
-import { getWorkerAnchorClient } from '../lib/anchor';
+import { getWorkerEVMClient } from '../lib/evm';
 import { prisma } from '../lib/prisma';
 
 // RapidAPI configuration for twitter241
@@ -62,8 +62,8 @@ async function fetchXSnapshot(username: string): Promise<XSnapshot> {
     if (!response.ok) {
       throw new Error(`Failed to fetch X snapshot: ${response.status}`);
     }
-    const data = await response.json();
-    return data.data?.state || data.data;
+    const data = await response.json() as { data?: { state?: XSnapshot } & XSnapshot };
+    return data.data?.state || data.data as XSnapshot;
   }
 
   // Use RapidAPI in production
@@ -82,7 +82,7 @@ async function fetchXSnapshot(username: string): Promise<XSnapshot> {
     throw new Error(`RapidAPI request failed: ${response.status} ${response.statusText}`);
   }
 
-  const data: Twitter241Response = await response.json();
+  const data = await response.json() as Twitter241Response;
 
   if (data.error || data.message) {
     throw new Error(data.error || data.message || 'Unknown API error');
@@ -244,16 +244,16 @@ export async function processVerifyInitialJob(job: Job<VerifyInitialJobPayload>)
 
     // Call on-chain to set LIVE
     try {
-      const anchorClient = getWorkerAnchorClient();
+      const evmClient = getWorkerEVMClient();
       const chainCampaignId = BigInt(campaign.chainCampaignId || '0');
       const startTs = Math.floor(now.getTime() / 1000);
       const endTs = Math.floor(endAt.getTime() / 1000);
       
-      console.log(`[VerifyInitial] Calling platform_set_live on-chain...`);
-      const liveTxSig = await anchorClient.setLive(chainCampaignId, startTs, endTs);
-      console.log(`[VerifyInitial] On-chain set_live successful: ${liveTxSig}`);
+      console.log(`[VerifyInitial] Calling platformSetLive on-chain...`);
+      const liveTxSig = await evmClient.setLive(chainCampaignId, startTs, endTs);
+      console.log(`[VerifyInitial] On-chain setLive successful: ${liveTxSig}`);
     } catch (onChainError) {
-      console.error(`[VerifyInitial] On-chain set_live failed:`, onChainError);
+      console.error(`[VerifyInitial] On-chain setLive failed:`, onChainError);
       // Continue anyway - DB state is source of truth for now
     }
 

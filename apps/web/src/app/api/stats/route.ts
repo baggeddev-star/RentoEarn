@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { formatEther } from 'viem';
 
 /**
  * GET /api/stats
@@ -32,7 +33,7 @@ export async function GET() {
       },
     });
 
-    const totalVolumeLamports = volumeResult._sum.amountLamports || BigInt(0);
+    const totalVolumeWei = volumeResult._sum.amountLamports || BigInt(0);
 
     // Calculate locked value (campaigns that are live)
     const lockedResult = await prisma.campaign.aggregate({
@@ -44,7 +45,7 @@ export async function GET() {
       },
     });
 
-    const lockedLamports = lockedResult._sum.amountLamports || BigInt(0);
+    const lockedWei = lockedResult._sum.amountLamports || BigInt(0);
 
     // Get 24h volume (campaigns created in last 24 hours)
     const yesterday = new Date();
@@ -60,7 +61,7 @@ export async function GET() {
       },
     });
 
-    const volume24hLamports = volume24hResult._sum.amountLamports || BigInt(0);
+    const volume24hWei = volume24hResult._sum.amountLamports || BigInt(0);
 
     return NextResponse.json({
       success: true,
@@ -70,14 +71,14 @@ export async function GET() {
         completedCampaigns,
         activeCampaigns,
         totalRequests,
-        totalVolumeLamports: totalVolumeLamports.toString(),
-        lockedLamports: lockedLamports.toString(),
-        volume24hLamports: volume24hLamports.toString(),
+        totalVolumeWei: totalVolumeWei.toString(),
+        lockedWei: lockedWei.toString(),
+        volume24hWei: volume24hWei.toString(),
         // Formatted for display
         formatted: {
-          totalVolumeSol: (Number(totalVolumeLamports) / 1_000_000_000).toFixed(2),
-          lockedSol: (Number(lockedLamports) / 1_000_000_000).toFixed(2),
-          volume24hSol: (Number(volume24hLamports) / 1_000_000_000).toFixed(2),
+          totalVolumeEth: Number(formatEther(totalVolumeWei)).toFixed(4),
+          lockedEth: Number(formatEther(lockedWei)).toFixed(4),
+          volume24hEth: Number(formatEther(volume24hWei)).toFixed(4),
         },
       },
     });

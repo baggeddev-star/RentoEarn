@@ -34,9 +34,9 @@ interface PlatformStats {
   totalListings: number;
   activeCampaigns: number;
   formatted: {
-    totalVolumeSol: string;
-    lockedSol: string;
-    volume24hSol: string;
+    totalVolumeEth: string;
+    lockedEth: string;
+    volume24hEth: string;
   };
 }
 
@@ -163,19 +163,19 @@ function StatsDisplay({ stats }: { stats: PlatformStats | null }) {
       className="flex flex-wrap items-center justify-center gap-4 sm:gap-6"
     >
       <StatBox 
-        value={stats.formatted.volume24hSol} 
+        value={stats.formatted.volume24hEth} 
         label="24h Volume" 
-        suffix="◎" 
+        suffix="ETH" 
       />
       <StatBox 
-        value={stats.formatted.totalVolumeSol} 
+        value={stats.formatted.totalVolumeEth} 
         label="All Time" 
-        suffix="◎" 
+        suffix="ETH" 
       />
       <StatBox 
-        value={stats.formatted.lockedSol} 
+        value={stats.formatted.lockedEth} 
         label="Locked" 
-        suffix="◎" 
+        suffix="ETH" 
       />
     </motion.div>
   );
@@ -265,7 +265,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 px-4 py-2 border border-white/30 bg-black/50 backdrop-blur-sm mb-8"
             >
               <span className="w-2 h-2 bg-green-400 animate-pulse" />
-              <span className="text-sm text-white/80 font-mono">LIVE ON SOLANA</span>
+              <span className="text-sm text-white/80 font-mono">LIVE ON BASE</span>
             </motion.div>
 
             {/* Main Headline */}
@@ -299,7 +299,7 @@ export default function HomePage() {
               className="text-base sm:text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed px-4 drop-shadow-lg"
             >
               The marketplace for X profile rentals. Creators monetize their reach,
-              sponsors find their audience. <span className="text-white font-medium">Secured by Solana escrow.</span>
+              sponsors find their audience. <span className="text-white font-medium">Secured by Base escrow.</span>
             </motion.p>
 
             {/* CTAs - Boxy */}
@@ -368,7 +368,7 @@ export default function HomePage() {
             <JourneyCard
               number="01"
               title="For Creators"
-              description="List your header or bio slot, set your price, and get paid in SOL after each successful campaign."
+              description="List your header or bio slot, set your price, and get paid in ETH after each successful campaign."
               delay={0}
               icon={
                 <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -379,7 +379,7 @@ export default function HomePage() {
             <JourneyCard
               number="02"
               title="For Sponsors"
-              description="Browse verified creators, book slots with SOL escrow, and get automated banner verification."
+              description="Browse verified creators, book slots with ETH escrow, and get automated banner verification."
               delay={0.2}
               icon={
                 <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">

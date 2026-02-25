@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { StatusChip } from '@/components/ui/StatusChip';
+import { formatEther, parseEther } from 'viem';
 
 interface Request {
   id: string;
@@ -28,8 +29,8 @@ interface Request {
   }[];
 }
 
-function formatSol(lamports: string): string {
-  return (Number(lamports) / 1_000_000_000).toFixed(2);
+function formatEth(wei: string): string {
+  return Number(formatEther(BigInt(wei))).toFixed(4);
 }
 
 function formatDuration(seconds: number): string {
@@ -50,7 +51,7 @@ export default function RequestDetailPage({
 }) {
   const router = useRouter();
   const { user } = useAuth();
-  const { connected } = useWallet();
+  const { isConnected } = useAccount();
   
   const [request, setRequest] = useState<Request | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,7 +105,7 @@ export default function RequestDetailPage({
   }, [params, user]);
 
   const handleApply = () => {
-    if (!connected) return;
+    if (!isConnected) return;
     if (!user) {
       setApplyError('Please sign in first');
       return;
@@ -128,7 +129,7 @@ export default function RequestDetailPage({
       }
       
       if (proposedAmount && parseFloat(proposedAmount) > 0) {
-        body.proposedAmountLamports = Math.floor(parseFloat(proposedAmount) * 1_000_000_000).toString();
+        body.proposedAmountLamports = parseEther(proposedAmount).toString();
       }
 
       const res = await fetch(`/api/requests/${request.id}/apply`, {
@@ -254,7 +255,7 @@ export default function RequestDetailPage({
             <div>
               <div className="text-xs text-white/40 font-mono uppercase mb-2">Budget</div>
               <div className="text-2xl font-bold text-white tabular-nums">
-                {formatSol(request.amountLamports)} ◎
+                {formatEth(request.amountLamports)} ETH
                 {request.maxWinners && request.maxWinners > 1 && (
                   <span className="text-white/40 font-normal text-sm"> / slot</span>
                 )}
@@ -291,7 +292,7 @@ export default function RequestDetailPage({
               {isSponsorRequest ? 'Interested?' : 'Want to Book?'}
             </h3>
             <p className="text-white/50 text-sm mb-6">
-              {!connected 
+              {!isConnected 
                 ? 'Connect your wallet to apply'
                 : !user 
                   ? 'Sign in to apply'
@@ -305,8 +306,17 @@ export default function RequestDetailPage({
               }
             </p>
             
-            {!connected ? (
-              <WalletMultiButton className="!px-8 !py-4 !border-2 !border-white !bg-white !text-black !font-semibold hover:!bg-transparent hover:!text-white !transition-all !rounded-none" />
+            {!isConnected ? (
+              <ConnectButton.Custom>
+                {({ openConnectModal }) => (
+                  <button
+                    onClick={openConnectModal}
+                    className="px-8 py-4 border-2 border-white bg-white text-black font-semibold hover:bg-transparent hover:text-white transition-all"
+                  >
+                    Connect Wallet
+                  </button>
+                )}
+              </ConnectButton.Custom>
             ) : !user ? (
               <p className="text-yellow-400 text-sm">Please sign in using the button in the navbar</p>
             ) : hasApplied ? (
@@ -357,7 +367,7 @@ export default function RequestDetailPage({
                     )}
                     {app.proposedAmountLamports && (
                       <p className="text-xs text-green-400 mt-1">
-                        Proposed: {formatSol(app.proposedAmountLamports)} ◎
+                        Proposed: {formatEth(app.proposedAmountLamports)} ETH
                       </p>
                     )}
                   </div>
@@ -446,7 +456,7 @@ export default function RequestDetailPage({
                 <div className="mb-6 pb-6 border-b border-white/10">
                   <h3 className="text-white font-medium mb-2">{request.title}</h3>
                   <div className="flex items-center gap-4 text-sm text-white/50">
-                    <span>{formatSol(request.amountLamports)} ◎</span>
+                    <span>{formatEth(request.amountLamports)} ETH</span>
                     <span>•</span>
                     <span>{formatDuration(request.durationSeconds)}</span>
                   </div>
@@ -481,10 +491,10 @@ export default function RequestDetailPage({
                         min="0"
                         value={proposedAmount}
                         onChange={(e) => setProposedAmount(e.target.value)}
-                        placeholder={formatSol(request.amountLamports)}
+                        placeholder={formatEth(request.amountLamports)}
                         className="w-full px-4 py-3 bg-black border border-white/20 text-white font-mono focus:border-white focus:outline-none transition-colors"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">◎</span>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">ETH</span>
                     </div>
                     <p className="text-xs text-white/30 mt-1">Leave empty to accept the listed price</p>
                   </div>

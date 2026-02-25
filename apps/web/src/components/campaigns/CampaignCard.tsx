@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { formatEther } from 'viem';
 import { StatusChip } from '../ui/StatusChip';
 import { Avatar } from '@/components/ui/Avatar';
 
@@ -37,8 +38,12 @@ function needsAction(status: string, viewAs: 'sponsor' | 'creator'): string | nu
   return null;
 }
 
-function formatSol(lamports: string): string {
-  return (Number(lamports) / 1_000_000_000).toFixed(2);
+function formatEth(wei: string): string {
+  const eth = Number(formatEther(BigInt(wei)));
+  if (eth < 0.0001) return eth.toExponential(2);
+  if (eth < 0.01) return eth.toFixed(6);
+  if (eth < 1) return eth.toFixed(4);
+  return eth.toFixed(2);
 }
 
 function formatDuration(seconds: number): string {
@@ -115,7 +120,7 @@ export function CampaignCard({ campaign, viewAs }: CampaignCardProps) {
           </div>
           <div>
             <span className="text-white/40">Amount </span>
-            <span className="font-semibold text-white tabular-nums">{formatSol(campaign.amountLamports)} ◎</span>
+            <span className="font-semibold text-white tabular-nums">{formatEth(campaign.amountLamports)} ETH</span>
           </div>
         </div>
 

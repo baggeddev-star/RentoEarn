@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Link from 'next/link';
 import Image from 'next/image';
-
-const LAMPORTS_PER_SOL = 1_000_000_000;
+import { parseEther } from 'viem';
 
 const DURATION_OPTIONS = [
   { label: '24 Hours', value: 86400, display: '24h' },
@@ -123,8 +122,8 @@ export default function CreateRequestPage() {
         headerImageUrl = uploadData.data.url;
       }
 
-      // Convert SOL to lamports
-      const amountLamports = Math.floor(amount * LAMPORTS_PER_SOL).toString();
+      // Convert ETH to wei
+      const amountWei = parseEther(formData.amount).toString();
 
       const res = await fetch('/api/requests', {
         method: 'POST',
@@ -136,7 +135,7 @@ export default function CreateRequestPage() {
           description: formData.description.trim(),
           slotTypes,
           durationSeconds: formData.durationSeconds,
-          amountLamports,
+          amountLamports: amountWei,
           maxWinners: maxWinners > 1 ? maxWinners : undefined,
           headerImageUrl,
         }),
@@ -412,7 +411,7 @@ export default function CreateRequestPage() {
                   className="w-full px-4 py-3 bg-black border border-white/20 text-white font-mono focus:border-white focus:outline-none transition-colors"
                   required
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">◎</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">ETH</span>
               </div>
             </div>
             <div>

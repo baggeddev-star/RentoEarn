@@ -1,7 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import { SolanaProvider } from './SolanaProvider';
+import { EVMProvider } from './EVMProvider';
 import { AuthProvider } from './AuthProvider';
 import { ReactNode } from 'react';
 
@@ -12,9 +12,9 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
-      <SolanaProvider>
+      <EVMProvider>
         <AuthProvider>{children}</AuthProvider>
-      </SolanaProvider>
+      </EVMProvider>
     </SessionProvider>
   );
 }

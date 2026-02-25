@@ -9,7 +9,7 @@ async function getListings(searchParams: { slotType?: string }) {
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const res = await fetch(`${baseUrl}/api/listings?${params}`, {
-    next: { revalidate: 10 }, // Cache for 10 seconds, then revalidate
+    next: { revalidate: 10 },
   });
 
   if (!res.ok) {
@@ -20,13 +20,30 @@ async function getListings(searchParams: { slotType?: string }) {
   return data.data;
 }
 
+async function getEthPrice(): Promise<number> {
+  try {
+    const res = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd',
+      { next: { revalidate: 60 } }
+    );
+    if (!res.ok) return 2800;
+    const data = await res.json();
+    return data.ethereum?.usd || 2800;
+  } catch {
+    return 2800;
+  }
+}
+
 export default async function ListingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ slotType?: string }>;
 }) {
   const params = await searchParams;
-  const { listings, pagination } = await getListings(params);
+  const [{ listings, pagination }, ethPrice] = await Promise.all([
+    getListings(params),
+    getEthPrice(),
+  ]);
 
   return (
     <div className="min-h-screen bg-black pt-24">
@@ -82,7 +99,7 @@ export default async function ListingsPage({
           <>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {listings.map((listing: Record<string, unknown>) => (
-                <ListingCard key={listing.id as string} listing={listing as any} />
+                <ListingCard key={listing.id as string} listing={listing as any} ethPrice={ethPrice} />
               ))}
             </div>
 

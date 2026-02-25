@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { formatEther } from 'viem';
 import { StatusChip } from '../ui/StatusChip';
 
 interface RequestCardProps {
@@ -22,8 +23,12 @@ interface RequestCardProps {
   };
 }
 
-function formatSol(lamports: string): string {
-  return (Number(lamports) / 1_000_000_000).toFixed(2);
+function formatEth(wei: string): string {
+  const eth = Number(formatEther(BigInt(wei)));
+  if (eth < 0.0001) return eth.toExponential(2);
+  if (eth < 0.01) return eth.toFixed(6);
+  if (eth < 1) return eth.toFixed(4);
+  return eth.toFixed(2);
 }
 
 function formatDuration(seconds: number): string {
@@ -100,8 +105,8 @@ export function RequestCard({ request }: RequestCardProps) {
           {/* Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-white/10">
             <div>
-              <span className="text-xl font-bold text-white tabular-nums">{formatSol(request.amountLamports)}</span>
-              <span className="text-white/40 ml-1">◎</span>
+              <span className="text-xl font-bold text-white tabular-nums">{formatEth(request.amountLamports)}</span>
+              <span className="text-white/40 ml-1">ETH</span>
             </div>
             {request._count && (
               <span className="text-sm text-white/40 font-mono">

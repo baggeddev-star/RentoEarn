@@ -1,12 +1,11 @@
 'use client';
 
-import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '../providers/AuthProvider';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
-// Helper to check if avatar URL is valid
 function isValidAvatarUrl(url: string | null | undefined): boolean {
   return !!(url && 
     !url.includes('default_avatar') && 
@@ -15,7 +14,7 @@ function isValidAvatarUrl(url: string | null | undefined): boolean {
 }
 
 export function Header() {
-  const { connected } = useWallet();
+  const { isConnected } = useAccount();
   const { user, isLoading, signIn, signOut } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -33,7 +32,6 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change or resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) {
@@ -57,7 +55,6 @@ export function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-3 sm:px-4 py-3 sm:py-4">
-      {/* Main Navbar Pill */}
       <nav 
         className={`
           max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3 
@@ -68,7 +65,6 @@ export function Header() {
         `}
       >
         <div className="flex items-center justify-between gap-2">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center transition-all duration-200 group-hover:bg-white group-hover:border-white">
               <span className="font-bold text-xs sm:text-sm text-white group-hover:text-black">B</span>
@@ -78,11 +74,10 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Center Navigation - Desktop Only */}
           <div className="hidden lg:flex items-center gap-1">
             <NavLink href="/listings">Listings</NavLink>
             <NavLink href="/requests">Requests</NavLink>
-            <NavLink href="/coming-soon">Features</NavLink>
+            <NavLink href="/how-it-works">How It Works</NavLink>
             {user && (
               <>
                 <NavLink href="/dashboard/sponsor">Bookings</NavLink>
@@ -93,13 +88,20 @@ export function Header() {
             )}
           </div>
 
-          {/* Right Side */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Auth buttons */}
             {mounted ? (
               <>
-                {!connected ? (
-                  <WalletMultiButton className="!rounded-full !bg-white !text-black !font-medium !text-xs sm:!text-sm !h-8 sm:!h-9 !px-3 sm:!px-5 hover:!bg-white/90 !border-0 !transition-all" />
+                {!isConnected ? (
+                  <ConnectButton.Custom>
+                    {({ openConnectModal }) => (
+                      <button
+                        onClick={openConnectModal}
+                        className="h-8 sm:h-9 px-3 sm:px-5 rounded-full bg-white text-black font-medium text-xs sm:text-sm hover:bg-white/90 transition-all"
+                      >
+                        Connect
+                      </button>
+                    )}
+                  </ConnectButton.Custom>
                 ) : !user ? (
                   <button
                     onClick={handleSignIn}
@@ -127,7 +129,7 @@ export function Header() {
                       )}
                       <span className="text-xs sm:text-sm text-white/90 hidden md:block max-w-[80px] truncate">
                         {user.creatorProfile?.displayName ||
-                          `${user.wallet.slice(0, 4)}...`}
+                          `${user.wallet.slice(0, 6)}...`}
                       </span>
                     </div>
                   </Link>
@@ -137,7 +139,6 @@ export function Header() {
               <div className="h-8 sm:h-9 w-20 sm:w-24 rounded-full bg-white/10 animate-pulse" />
             )}
 
-            {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-all flex-shrink-0"
@@ -160,16 +161,13 @@ export function Header() {
         </div>
       </nav>
 
-      {/* Mobile Navigation - Separate dropdown below pill */}
       {mobileMenuOpen && (
         <>
-          {/* Backdrop */}
           <div 
             className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden -z-10"
             onClick={() => setMobileMenuOpen(false)}
           />
           
-          {/* Dropdown menu */}
           <div className="lg:hidden max-w-6xl mx-auto mt-2 p-4 rounded-2xl border border-white/10 backdrop-blur-xl bg-black/90">
             <div className="flex flex-col gap-1">
               <MobileNavLink href="/listings" onClick={() => setMobileMenuOpen(false)}>
@@ -178,8 +176,8 @@ export function Header() {
               <MobileNavLink href="/requests" onClick={() => setMobileMenuOpen(false)}>
                 Requests
               </MobileNavLink>
-              <MobileNavLink href="/coming-soon" onClick={() => setMobileMenuOpen(false)}>
-                Features
+              <MobileNavLink href="/how-it-works" onClick={() => setMobileMenuOpen(false)}>
+                How It Works
               </MobileNavLink>
               {user && (
                 <>

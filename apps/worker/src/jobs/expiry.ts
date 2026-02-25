@@ -1,6 +1,7 @@
 import { Job } from 'bullmq';
 import type { ExpiryJobPayload } from '@shared/types';
 import { notifyCampaignExpired } from '../lib/notifications';
+import { getWorkerEVMClient } from '../lib/evm';
 import { prisma } from '../lib/prisma';
 
 /**
@@ -12,7 +13,6 @@ export async function processExpiryJob(job: Job<ExpiryJobPayload>) {
 
   console.log(`[Expiry] Processing campaign ${campaignId}`);
 
-  // Fetch campaign
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
   });
@@ -22,13 +22,11 @@ export async function processExpiryJob(job: Job<ExpiryJobPayload>) {
     return { success: false, reason: 'Campaign not found' };
   }
 
-  // Only process LIVE campaigns
   if (campaign.status !== 'LIVE') {
     console.log(`[Expiry] Campaign ${campaignId} is not LIVE (status: ${campaign.status})`);
     return { success: false, reason: 'Campaign not LIVE' };
   }
 
-  // Verify end time has passed
   if (campaign.endAt && new Date() < campaign.endAt) {
     console.log(`[Expiry] Campaign ${campaignId} has not ended yet`);
     return { success: false, reason: 'Campaign not ended' };
@@ -36,7 +34,6 @@ export async function processExpiryJob(job: Job<ExpiryJobPayload>) {
 
   console.log(`[Expiry] Campaign ${campaignId} - Marking as EXPIRED`);
 
-  // Update to EXPIRED
   await prisma.campaign.update({
     where: { id: campaignId },
     data: {
@@ -44,13 +41,19 @@ export async function processExpiryJob(job: Job<ExpiryJobPayload>) {
     },
   });
 
-  // In production, would call platform_set_expired on-chain
-  console.log(`[Expiry] Would call platform_set_expired for campaign ${campaign.chainCampaignId}`);
+  try {
+    const evmClient = getWorkerEVMClient();
+    const chainCampaignId = BigInt(campaign.chainCampaignId || '0');
+    
+    console.log(`[Expiry] Calling platformSetExpired on-chain...`);
+    const txHash = await evmClient.setExpired(chainCampaignId);
+    console.log(`[Expiry] On-chain setExpired successful: ${txHash}`);
+  } catch (onChainError) {
+    console.error(`[Expiry] On-chain setExpired failed:`, onChainError);
+  }
 
-  // Notify creator they can claim
   await notifyCampaignExpired(campaignId, campaign.creatorWallet);
 
-  // Create activity event
   await prisma.activityEvent.create({
     data: {
       type: 'CAMPAIGN_EXPIRED',
