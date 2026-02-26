@@ -14,9 +14,8 @@ COPY . .
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
-# Build the worker
+# Set working directory to worker
 WORKDIR /app/apps/worker
-RUN pnpm build
 
-# Start
-CMD ["pnpm", "start"]
+# Run directly with tsx (no build step needed)
+CMD ["npx", "tsx", "src/index.ts"]
