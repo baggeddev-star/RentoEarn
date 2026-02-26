@@ -17,6 +17,7 @@ RUN pnpm install --no-frozen-lockfile
 # Build the web app
 WORKDIR /app/apps/web
 RUN pnpm prisma generate
+RUN pnpm prisma db push --skip-generate
 RUN pnpm build
 
 # Start
